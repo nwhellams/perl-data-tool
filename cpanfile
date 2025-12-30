@@ -1,0 +1,10 @@
+requires 'DBI';
+requires 'DBD::Pg';
+requires 'Excel::Writer::XLSX';
+requires 'Getopt::Long';
+requires 'Try::Tiny';
+requires 'POSIX';
+requires 'Log::Log4perl';
+requires 'DBIx::Log4perl';
+requires 'Log::Dispatch::Syslog';
+requires 'namespace::autoclean';

@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: demo_postgres
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro
+
+  exporter:
+    build: .
+    container_name: demo_exporter
+    depends_on:
+      - postgres
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: demo
+      PGUSER: demo
+      PGPASSWORD: demo
+    volumes:
+      - ./out:/out
+      - ./modules:/app/modules
+      - ./logs:/app/logs
+      - ./conf:/app/conf
+    command: ["sleep", "infinity"]
+    restart: unless-stopped

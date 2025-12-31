@@ -42,4 +42,4 @@ inc/
 # cpanfile.snapshot 
 
 logs/*.log
-out/*.*
+out/*.xlsx

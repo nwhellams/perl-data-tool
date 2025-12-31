@@ -7,3 +7,5 @@ requires 'POSIX';
 requires 'Log::Log4perl';
 requires 'DBIx::Log4perl';
 requires 'namespace::autoclean';
+requires 'Test::Pod::Coverage';
+requires 'Test::Pod';

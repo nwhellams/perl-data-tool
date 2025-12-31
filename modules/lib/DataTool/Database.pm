@@ -87,6 +87,18 @@ Creates a new Database object
 		return 1;
 	}
 
+=head2 getConnection
+
+Returns the database connection object
+
+=cut
+	sub getConnection
+	{
+		my $this  = shift;
+
+		return $this->{'connection'};
+	}
+
 =head2 throwError
 
 Logs an error message to the log object

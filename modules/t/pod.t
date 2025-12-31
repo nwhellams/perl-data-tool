@@ -1,12 +1,16 @@
-#!perl -T
-use 5.006;
 use strict;
-use warnings FATAL => 'all';
+use warnings;
+
 use Test::More;
 
-# Ensure a recent version of Test::Pod
-my $min_tp = 1.22;
-eval "use Test::Pod $min_tp";
-plan skip_all => "Test::Pod $min_tp required for testing POD" if $@;
+eval "use Test::Pod 1.22";
+plan skip_all => "Test::Pod 1.22 required for testing POD" if $@;
 
-all_pod_files_ok();
+my @dirs;
+push @dirs, 'lib'         if -d 'lib';
+push @dirs, 'modules/lib' if -d 'modules/lib';
+
+plan skip_all => "No POD source directories found (expected lib/ or modules/lib/)" unless @dirs;
+
+my @files = all_pod_files(@dirs);
+all_pod_files_ok(@files);

@@ -16,13 +16,14 @@ OUT ?= payments.xlsx
 STATUS ?=
 FROM ?=
 TO ?=
+DEBUG ?=
 
 .PHONY: help up down restart ps logs logs-postgres logs-exporter wait-db export test psql clean-old-files
 
 help:
 	@echo "Targets:"
 	@echo "  up, down, restart, ps, logs"
-	@echo "  export (OUT=, STATUS=, FROM=, TO=)"
+	@echo "  export (OUT=, STATUS=, FROM=, TO=, DEBUG=)"
 	@echo "  test, psql, clean-old-files"
 	@echo ""
 	@echo "Examples:"
@@ -63,7 +64,8 @@ export: up wait-db
 		--out /out/$(OUT) \
 		$(if $(STATUS),--status $(STATUS),) \
 		$(if $(FROM),--from $(FROM),) \
-		$(if $(TO),--to $(TO),)
+		$(if $(TO),--to $(TO),) \
+		$(if $(DEBUG),--debug,)
 
 test: up wait-db
 	$(COMPOSE) exec $(EXPORTER_SERVICE) prove -l modules/t

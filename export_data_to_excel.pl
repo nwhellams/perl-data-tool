@@ -6,11 +6,7 @@ use warnings;
 use Getopt::Long qw(GetOptions);
 use Try::Tiny;
 use Excel::Writer::XLSX;
-use POSIX qw(strftime);
-
-use Carp;
 use Log::Log4perl qw(get_logger :levels);
-use DBIx::Log4perl qw(:masks);
 
 use FindBin qw($Bin);
 
@@ -20,9 +16,21 @@ use DataTool::Database;
 my $log_conf = "$Bin/conf/log4perl.conf";
 my $logLevel = $INFO;
 
-my $DEBUG_SCRIPT = 0; # 1 to switch to debug logging
+my $out   = "$Bin/out/payments_export.xlsx";
+my $from  = undef;  # YYYY-MM-DD
+my $to    = undef;  # YYYY-MM-DD
+my $status = undef; # e.g. captured
+my $debug = 0;
 
-if ($DEBUG_SCRIPT) {
+GetOptions(
+  "out=s"    => \$out,
+  "from=s"   => \$from,
+  "to=s"     => \$to,
+  "status=s" => \$status,
+  "debug"    => \$debug,
+) or die "Usage: $0 --out file.xlsx [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--status captured] [--debug]\n";
+
+if ($debug) {
   $log_conf = "$Bin/conf/log4perl_debug.conf";
   $logLevel = $DEBUG;
 }
@@ -32,18 +40,6 @@ Log::Log4perl::init($log_conf);
 my $logger = Log::Log4perl->get_logger();
 
 $logger->level($logLevel);
-
-my $out   = "payments_export.xlsx";
-my $from  = undef;  # YYYY-MM-DD
-my $to    = undef;  # YYYY-MM-DD
-my $status = undef; # e.g. captured
-
-GetOptions(
-  "out=s"    => \$out,
-  "from=s"   => \$from,
-  "to=s"     => \$to,
-  "status=s" => \$status,
-) or die "Usage: $0 --out file.xlsx [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--status captured]\n";
 
 # Connection via env vars (friendly for Docker, CI, prod, etc.)
 my $pg_host = $ENV{PGHOST}     // "127.0.0.1";

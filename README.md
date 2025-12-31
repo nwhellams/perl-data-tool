@@ -16,6 +16,30 @@ A tiny demo stack:
 
 ## Quick start
 
+# Makefile
+
+Get started
+~~~bash
+make up
+~~~
+
+Simple export
+~~~bash
+make export
+~~~
+
+Simple export with debug
+~~~bash
+make export DEBUG=1
+~~~
+
+Make help
+~~~bash
+make
+~~~
+
+# Run manually
+
 Start Postgres and the long-running exporter container:
 
 ~~~bash
@@ -109,6 +133,7 @@ export_data_to_excel.pl
 docker-compose.yml
 Dockerfile
 cpanfile
+Makefile
 ~~~
 
 ---

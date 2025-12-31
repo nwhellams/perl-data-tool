@@ -33,6 +33,11 @@ Simple export with debug
 make export DEBUG=1
 ~~~
 
+Run tests
+~~~bash
+make test
+~~~
+
 Make help
 ~~~bash
 make
@@ -64,7 +69,7 @@ Export only captured payments in a date range:
 
 ~~~bash
 docker exec -ti demo_exporter /app/export_data_to_excel.pl \
-  --out /out/captured.xlsx \
+  --out /app/out/captured.xlsx \
   --status captured \
   --from 2025-12-16 \
   --to 2025-12-30
@@ -72,7 +77,7 @@ docker exec -ti demo_exporter /app/export_data_to_excel.pl \
 
 Flags supported:
 
-- `--out <path>` output filename (inside container, typically `/out/...`)
+- `--out <path>` output filename (inside container, typically `/app/out/...`)
 - `--status <value>` e.g. `captured`, `failed`, `refunded`, `authorised`
 - `--from YYYY-MM-DD` inclusive
 - `--to YYYY-MM-DD` inclusive (implemented as `< to + 1 day`)
@@ -150,6 +155,8 @@ If you export immediately after `docker compose up -d`, Postgres may still be st
 Stop containers:
 
 ~~~bash
+make down
+# or
 docker compose down
 ~~~
 
@@ -158,3 +165,9 @@ Remove volumes (wipes Postgres data):
 ~~~bash
 docker compose down -v
 ~~~
+
+# Further Improvements
+
+This is a simple demo to show potential knowledge and skill. 
+
+The example database is rudimentary. I would look at creating tables for provider and status to cut down on data duplication.

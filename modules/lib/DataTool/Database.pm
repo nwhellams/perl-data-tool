@@ -4,10 +4,9 @@ package DataTool::Database;
 	use warnings;
 	use namespace::autoclean;
 	use Try::Tiny;
-	use DBI;
 	use DBIx::Log4perl;
 
-	$DataTool::Database::VERSION = '0.1';
+	our $VERSION = '0.1';
 
 
 =head1 NAME
@@ -29,14 +28,14 @@ Creates a new Database object
 	sub new
 	{
 		my $class = shift;
-		my $driver = shift;
+		my $dsn = shift;
 		my $db_user = shift;
 		my $db_password = shift;
 		my $log_object = shift;
 		my $autocommit = shift || 0; # default to no autocommit
 
 		my $self = {
-			driver	     => $driver,
+			dsn	     => $dsn,
 			db_user      => $db_user,
 			db_password  => $db_password,
 			log_object   => $log_object,
@@ -64,18 +63,14 @@ Creates a new Database object
 					  PrintError => 0, # We handle errors via RaiseError
 				  };
 
-		if ($this->{'driver'} =~ /^dbi:Pg:/) {
+		if ($this->{'dsn'} =~ /^dbi:Pg:/) {
 			# PostgreSQL specific attributes
 			$attr->{pg_enable_utf8} = 1; # Enable UTF-8 support
 		}
 
-		$this->{'log_object'}->debug("Connecting to database with driver " . $this->{'driver'});
-
-		$this->{'log_object'}->debug("DBI attributes: " . join(", ", map { "$_ => " . $attr->{$_} } keys %$attr));
-
 		try { 
 			$this->{'connection'} = DBIx::Log4perl->connect(
-				$this->{'driver'},
+				$this->{'dsn'},
 				$this->{'db_user'}, 
 				$this->{'db_password'}, 
 				$attr);
@@ -133,7 +128,7 @@ Returns the last error message logged
 
 =head2 prepare
 
-Prepares an SQL statement for execution
+Prepares an SQL query for execution
 
 =cut
 
@@ -142,14 +137,16 @@ Prepares an SQL statement for execution
 		my $this  = shift;
 		my $sql   = shift;
 
+		my $statement;
+
 		try { 
-			$this->{'statement'} = $this->{'connection'}->prepare($sql);
+			$statement = $this->{'connection'}->prepare($sql);
 		} catch {
 			$this->throwError('prepare SQL query failed! : ' . $_);
 			die($_);	
 		};
 
-		return $this->{'statement'};
+		return $statement;
 	}
 
 =head2 disconnect
@@ -158,11 +155,14 @@ Disconnect from the database
 
 =cut
 
-	sub disconnect
+	sub disconnect 
 	{
 		my $this  = shift;
 
-		$this->{'connection'}->disconnect();
+		if ($this->{connection}) {
+			$this->{connection}->disconnect();
+			$this->{connection} = undef;
+		}
 	}
 
 	return 1;

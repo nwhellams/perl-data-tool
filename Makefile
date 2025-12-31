@@ -60,7 +60,7 @@ wait-db:
 
 export: up wait-db
 	@echo "Exporting -> ./out/$(OUT)"
-	$(COMPOSE) exec $(EXPORTER_SERVICE) $(EXPORT_SCRIPT) \
+	$(COMPOSE) exec -T $(EXPORTER_SERVICE) $(EXPORT_SCRIPT) \
 		--out /app/out/$(OUT) \
 		$(if $(STATUS),--status $(STATUS),) \
 		$(if $(FROM),--from $(FROM),) \
@@ -68,7 +68,7 @@ export: up wait-db
 		$(if $(DEBUG),--debug,)
 
 test: up wait-db
-	$(COMPOSE) exec $(EXPORTER_SERVICE) prove -l modules/t
+	$(COMPOSE) exec -T $(EXPORTER_SERVICE) prove -lv modules/t
 
 psql: up wait-db
 	$(COMPOSE) exec $(POSTGRES_SERVICE) psql -U demo -d demo

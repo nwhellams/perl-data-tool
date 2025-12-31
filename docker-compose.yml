@@ -22,6 +22,7 @@ services:
       PGDATABASE: demo
       PGUSER: demo
       PGPASSWORD: demo
+      RUNNING_IN_DOCKER: 1
     volumes:
       - ./out:/app/out
       - ./modules:/app/modules

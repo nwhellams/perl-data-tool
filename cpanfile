@@ -9,3 +9,4 @@ requires 'DBIx::Log4perl';
 requires 'namespace::autoclean';
 requires 'Test::Pod::Coverage';
 requires 'Test::Pod';
+requires 'Pod::Coverage';

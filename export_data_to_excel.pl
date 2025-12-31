@@ -8,15 +8,30 @@ use Try::Tiny;
 use Excel::Writer::XLSX;
 use Log::Log4perl qw(get_logger :levels);
 
+use FindBin qw($Bin);
+
+use lib "$Bin/modules/lib"; # run locally
 use lib "/app/modules/lib";
 use DataTool::Database;
 
-use Data::Dumper;
+# Debug tool
+#use Data::Dumper;
 
-my $log_conf = "/app/conf/log4perl.conf";
+my $log_conf_base;
+my $out_base;
+
+if (-d "/app/" && $ENV{'RUNNING_IN_DOCKER'}) {
+  $log_conf_base = "/app/conf";
+  $out_base = "/app/out";
+} else {
+  $log_conf_base = "$Bin/conf";
+  $out_base = "$Bin/out";
+}
+
+my $log_conf = "$log_conf_base/log4perl.conf";
 my $logLevel = $INFO;
 
-my $out   = "/app/out/payments_export.xlsx";
+my $out   = "$out_base/payments_export.xlsx";
 my $from  = undef;  # YYYY-MM-DD
 my $to    = undef;  # YYYY-MM-DD
 my $status = undef; # e.g. captured
@@ -28,10 +43,19 @@ GetOptions(
   "to=s"     => \$to,
   "status=s" => \$status,
   "debug"    => \$debug,
-) or die "Usage: $0 --out file.xlsx [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--status captured] [--debug]\n";
+) or die("Usage: $0 --out file.xlsx [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--status captured] [--debug]\n");
+
+for ($status, $from, $to) {
+  $_ = undef if defined($_) && $_ eq '';
+}
+
+for my $date (['from', $from], ['to', $to]) {
+  next unless defined $date->[1];
+  die("--$date->[0] must be YYYY-MM-DD\n") unless $date->[1] =~ /^\d{4}-\d{2}-\d{2}$/;
+}
 
 if ($debug) {
-  $log_conf = "/app/conf/log4perl_debug.conf";
+  $log_conf = "$log_conf_base/log4perl_debug.conf";
   $logLevel = $DEBUG;
 }
 
@@ -48,7 +72,7 @@ my $pg_db   = $ENV{PGDATABASE} // "demo";
 my $pg_user = $ENV{PGUSER}     // "demo";
 my $pg_pass = $ENV{PGPASSWORD} // "demo";
 
-my $dbh = DataTool::Database->new(
+my $db = DataTool::Database->new(
   "dbi:Pg:dbname=$pg_db;host=$pg_host;port=$pg_port", 
   $pg_user, 
   $pg_pass, 
@@ -59,7 +83,7 @@ my $dbh = DataTool::Database->new(
 $logger->debug("Connecting to database $pg_db at $pg_host:$pg_port as $pg_user...");
 
 try {
-  $dbh->connect();
+  $db->connect();
 } catch {
   $logger->logconfess("Database connection failed: " . $_);
 };   
@@ -94,7 +118,7 @@ my $sql = qq{
     c.full_name,
     c.email,
     p.provider,
-    (p.amount_pence / 100.0) AS amount,
+    (p.amount_pence::numeric / 100.0) AS amount,
     p.currency,
     p.status,
     to_char(p.created_at, 'YYYY-MM-DD HH24:MI:SSOF') AS created_at
@@ -104,69 +128,74 @@ my $sql = qq{
   ORDER BY p.created_at DESC
 };
 
-my $sth = $dbh->prepare($sql);
-$sth->execute(@bind);
+my ($sth, $workbook, $row_idx) = (undef, undef, 0);
 
-# Excel output
-my $workbook  = Excel::Writer::XLSX->new($out)
-  or $logger->logcroak("Could not create $out: $!");
+try {
+  $sth = $db->prepare($sql);
+  $sth->execute(@bind);
 
-my $sheetname = "payments";
-my $worksheet = $workbook->add_worksheet($sheetname);
+  # Excel output
+  $workbook  = Excel::Writer::XLSX->new($out)
+    or $logger->logcroak("Could not create $out: $!");
 
-my $fmt_header = $workbook->add_format(bold => 1);
-my $fmt_money  = $workbook->add_format(num_format => '0.00');
+  my $sheetname = "payments";
+  my $worksheet = $workbook->add_worksheet($sheetname);
 
-my @headers = qw(
-  payment_id full_name email provider amount currency status created_at
-);
+  my $fmt_header = $workbook->add_format(bold => 1);
+  my $fmt_money  = $workbook->add_format(num_format => '0.00');
 
-# Write header row
-for my $col (0 .. $#headers) {
-  $worksheet->write(0, $col, $headers[$col], $fmt_header);
-}
+  my @headers = qw(
+    payment_id full_name email provider amount currency status created_at
+  );
 
-# Stream rows
-my $row_idx = 1;
-my @max_len = map { length($_) } @headers;
-
-while (my $row = $sth->fetchrow_hashref) {
-  my @values = @{$row}{@headers};
-
-  for my $col (0 .. $#values) {
-    my $val = $values[$col];
-
-    # Track column width
-    my $len = defined($val) ? length("$val") : 0;
-    $max_len[$col] = $len if $len > $max_len[$col];
-
-    # Amount gets numeric formatting
-    if ($headers[$col] eq 'amount') {
-      $worksheet->write_number($row_idx, $col, $val + 0, $fmt_money);
-    } else {
-      $worksheet->write($row_idx, $col, $val);
-    }
+  # Write header row
+  for my $col (0 .. $#headers) {
+    $worksheet->write(0, $col, $headers[$col], $fmt_header);
   }
 
-  $row_idx++;
-}
+  $worksheet->freeze_panes(1, 0);
+  $worksheet->autofilter(0, 0, 0, $#headers);
 
-$logger->debug("Closing statement handle and database connection");
-$sth->finish();
-$dbh->disconnect();
+  # Stream rows
+  $row_idx = 1;
+  my @max_len = map { length($_) } @headers;
 
-# Basic autosize (rough)
-for my $col (0 .. $#headers) {
-  my $w = $max_len[$col] + 2;
-  $w = 12 if $w < 12;
-  $w = 40 if $w > 40;
-  $worksheet->set_column($col, $col, $w);
-}
+  while (my $row = $sth->fetchrow_hashref) {
+    my @values = @{$row}{@headers};
 
-$logger->debug("Wrote worksheet $sheetname with $row_idx rows");
+    for my $col (0 .. $#values) {
+      my $val = $values[$col];
 
-$workbook->close;
+      # Track column width
+      my $len = defined($val) ? length("$val") : 0;
+      $max_len[$col] = $len if $len > $max_len[$col];
 
-$logger->debug("Closed workbook");
+      # Amount gets numeric formatting
+      if ($headers[$col] eq 'amount') {
+        $worksheet->write_number($row_idx, $col, $val + 0, $fmt_money);
+      } else {
+        $worksheet->write($row_idx, $col, $val);
+      }
+    }
+
+    $row_idx++;
+  }
+
+  # Basic autosize (rough)
+  for my $col (0 .. $#headers) {
+    my $width = $max_len[$col] + 2;
+    $width = 12 if $width < 12;
+    $width = 40 if $width > 40;
+    $worksheet->set_column($col, $col, $width);
+  }
+
+  $logger->debug("Wrote worksheet $sheetname with $row_idx rows");
+} catch {
+  $logger->logconfess("Export failed: $_");
+} finally {
+  eval { $sth->finish() if $sth };
+  eval { $db->disconnect() if $db };
+  eval { $workbook->close() if $workbook };
+};
 
 $logger->info("Wrote $out ($row_idx rows incl header)");

@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY cpanfile /app/cpanfile
 RUN cpanm --notest --installdeps /app
 
+# Copy configuration files
+ADD conf /app/conf
+
 # Copy the script
 COPY export_data_to_excel.pl /app/export_data_to_excel.pl
 RUN chmod +x /app/export_data_to_excel.pl

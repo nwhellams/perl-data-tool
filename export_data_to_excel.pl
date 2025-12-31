@@ -8,15 +8,15 @@ use Try::Tiny;
 use Excel::Writer::XLSX;
 use Log::Log4perl qw(get_logger :levels);
 
-use FindBin qw($Bin);
-
-use lib "$Bin/modules/lib";
+use lib "/app/modules/lib";
 use DataTool::Database;
 
-my $log_conf = "$Bin/conf/log4perl.conf";
+use Data::Dumper;
+
+my $log_conf = "/app/conf/log4perl.conf";
 my $logLevel = $INFO;
 
-my $out   = "$Bin/out/payments_export.xlsx";
+my $out   = "/app/out/payments_export.xlsx";
 my $from  = undef;  # YYYY-MM-DD
 my $to    = undef;  # YYYY-MM-DD
 my $status = undef; # e.g. captured
@@ -31,7 +31,7 @@ GetOptions(
 ) or die "Usage: $0 --out file.xlsx [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--status captured] [--debug]\n";
 
 if ($debug) {
-  $log_conf = "$Bin/conf/log4perl_debug.conf";
+  $log_conf = "/app/conf/log4perl_debug.conf";
   $logLevel = $DEBUG;
 }
 
@@ -104,12 +104,12 @@ my $sql = qq{
   ORDER BY p.created_at DESC
 };
 
-$dbh->prepare($sql);
-my $sth = $dbh->execute(\@bind);
+my $sth = $dbh->prepare($sql);
+$sth->execute(@bind);
 
 # Excel output
 my $workbook  = Excel::Writer::XLSX->new($out)
-  or die "Could not create $out: $!";
+  or $logger->logcroak("Could not create $out: $!");
 
 my $sheetname = "payments";
 my $worksheet = $workbook->add_worksheet($sheetname);
@@ -151,7 +151,8 @@ while (my $row = $sth->fetchrow_hashref) {
   $row_idx++;
 }
 
-$sth->finish;
+$logger->debug("Closing statement handle and database connection");
+$sth->finish();
 $dbh->disconnect();
 
 # Basic autosize (rough)
@@ -162,6 +163,10 @@ for my $col (0 .. $#headers) {
   $worksheet->set_column($col, $col, $w);
 }
 
+$logger->debug("Wrote worksheet $sheetname with $row_idx rows");
+
 $workbook->close;
 
-print "Wrote $out ($row_idx rows incl header)\n";
+$logger->debug("Closed workbook");
+
+$logger->info("Wrote $out ($row_idx rows incl header)");

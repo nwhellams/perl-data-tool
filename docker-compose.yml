@@ -23,9 +23,8 @@ services:
       PGUSER: demo
       PGPASSWORD: demo
     volumes:
-      - ./out:/out
+      - ./out:/app/out
       - ./modules:/app/modules
       - ./logs:/app/logs
-      - ./conf:/app/conf
     command: ["sleep", "infinity"]
     restart: unless-stopped

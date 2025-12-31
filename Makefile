@@ -61,7 +61,7 @@ wait-db:
 export: up wait-db
 	@echo "Exporting -> ./out/$(OUT)"
 	$(COMPOSE) exec $(EXPORTER_SERVICE) $(EXPORT_SCRIPT) \
-		--out /out/$(OUT) \
+		--out /app/out/$(OUT) \
 		$(if $(STATUS),--status $(STATUS),) \
 		$(if $(FROM),--from $(FROM),) \
 		$(if $(TO),--to $(TO),) \

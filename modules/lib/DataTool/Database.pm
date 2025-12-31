@@ -5,7 +5,7 @@ package DataTool::Database;
 	use namespace::autoclean;
 	use Try::Tiny;
 	use DBI;
-	use DBIx::Log4perl qw(:masks);
+	use DBIx::Log4perl;
 
 	$DataTool::Database::VERSION = '0.1';
 
@@ -16,7 +16,7 @@ DataTool::Database - database connection handler for DataTool
 
 =head1 SYNOPSIS
 
-Provides some basic functions to connect to a Postgres database
+Provides some basic functions to connect to a database
 	...
 =cut 
 
@@ -41,6 +41,7 @@ Creates a new Database object
 			db_password  => $db_password,
 			log_object   => $log_object,
 			autocommit   => $autocommit,
+			error		 => undef,
 		};
 			
 		bless $self, $class;
@@ -61,8 +62,16 @@ Creates a new Database object
 					  RaiseError => 1, # Make database errors fatal to script
 					  AutoCommit => $this->{'autocommit'},
 					  PrintError => 0, # We handle errors via RaiseError
-					  pg_enable_utf8 => 1, # Enable UTF-8 support
 				  };
+
+		if ($this->{'driver'} =~ /^dbi:Pg:/) {
+			# PostgreSQL specific attributes
+			$attr->{pg_enable_utf8} = 1; # Enable UTF-8 support
+		}
+
+		$this->{'log_object'}->debug("Connecting to database with driver " . $this->{'driver'});
+
+		$this->{'log_object'}->debug("DBI attributes: " . join(", ", map { "$_ => " . $attr->{$_} } keys %$attr));
 
 		try { 
 			$this->{'connection'} = DBIx::Log4perl->connect(
@@ -78,18 +87,6 @@ Creates a new Database object
 		return 1;
 	}
 
-=head2 getConnection
-
-Returns the database connection object
-
-=cut
-	sub getConnection
-	{
-		my $this  = shift;
-
-		return $this->{'connection'};
-	}
-
 =head2 throwError
 
 Logs an error message to the log object
@@ -102,7 +99,11 @@ Logs an error message to the log object
 
 		$this->{'error'} = $error;
 
-		$this->{'log_object'}->error($error);
+		if (defined $this->{'log_object'}) {
+			$this->{'log_object'}->error($error);
+		} else {
+			warn $error;
+		}
 	}
 
 =head2 getError
@@ -135,29 +136,9 @@ Prepares an SQL statement for execution
 			$this->throwError('prepare SQL query failed! : ' . $_);
 			die($_);	
 		};
-	}
-
-=head2 execute
-
-Excecutes a prepared SQL statement
-
-=cut
-
-	sub execute
-	{
-		my $this = shift;
-		my $bind = shift;
-
-		try { 
-			$this->{'statement'}->execute(@$bind);
-		} catch {
-			$this->throwError('execute SQL query failed! : ' . $_);
-			die($_);	
-		};
 
 		return $this->{'statement'};
 	}
-
 
 =head2 disconnect
 

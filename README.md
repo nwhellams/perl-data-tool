@@ -49,7 +49,7 @@ docker compose up -d
 Run an export on demand (exporter container stays up, you exec into it):
 
 ~~~bash
-docker compose exec exporter /app/export_data_to_excel.pl --out /out/payments.xlsx
+docker exec -ti demo_exporter /app/export_data_to_excel.pl --out /app/out/payments.xlsx
 ~~~
 
 Your file will appear on the host here:
@@ -63,7 +63,7 @@ Your file will appear on the host here:
 Export only captured payments in a date range:
 
 ~~~bash
-docker compose exec exporter /app/export_data_to_excel.pl \
+docker exec -ti demo_exporter /app/export_data_to_excel.pl \
   --out /out/captured.xlsx \
   --status captured \
   --from 2025-12-16 \
@@ -99,7 +99,7 @@ psql "postgresql://demo:demo@127.0.0.1:5432/demo"
 From inside the Postgres container:
 
 ~~~bash
-docker compose exec postgres psql -U demo -d demo
+docker exec -ti demo_postgres psql -U demo -d demo
 ~~~
 
 ---

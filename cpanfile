@@ -6,5 +6,4 @@ requires 'Try::Tiny';
 requires 'POSIX';
 requires 'Log::Log4perl';
 requires 'DBIx::Log4perl';
-requires 'Log::Dispatch::Syslog';
 requires 'namespace::autoclean';

@@ -171,3 +171,7 @@ docker compose down -v
 This is a simple demo to show potential knowledge and skill. 
 
 The example database is rudimentary. I would look at creating tables for provider and status to cut down on data duplication.
+
+You could also tighten up for a valid status, or dates which make sense rather than fit a reg ex. Also, moving more code to reusable modules (with tests).
+
+The main point of this demo is to show knowledge and approach, not to be a production deployment.

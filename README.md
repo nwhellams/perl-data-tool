@@ -1,4 +1,4 @@
-# perl-data-tool
+# Perl Data Tool
 
 A tiny demo stack:
 

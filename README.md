@@ -45,16 +45,17 @@ make
 
 # Run manually
 
-Start Postgres and the long-running exporter container:
+Start Postgres:
 
 ~~~bash
-docker compose up -d
+docker compose up -d postgres
 ~~~
 
-Run an export on demand (exporter container stays up, you exec into it):
+Run an export as a one-shot job. Compose removes the exporter container when it
+finishes and returns the script's exit status:
 
 ~~~bash
-docker exec -ti demo_exporter /app/export_data_to_excel.pl --out /app/out/payments.xlsx
+docker compose run --rm exporter --out /app/out/payments.xlsx
 ~~~
 
 Your file will appear on the host here:
@@ -68,7 +69,7 @@ Your file will appear on the host here:
 Export only captured payments in a date range:
 
 ~~~bash
-docker exec -ti demo_exporter /app/export_data_to_excel.pl \
+docker compose run --rm exporter \
   --out /app/out/captured.xlsx \
   --status captured \
   --from 2025-12-16 \

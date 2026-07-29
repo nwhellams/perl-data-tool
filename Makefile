@@ -10,8 +10,6 @@ COMPOSE ?= docker compose
 EXPORTER_SERVICE ?= exporter
 POSTGRES_SERVICE ?= postgres
 
-EXPORT_SCRIPT ?= /app/export_data_to_excel.pl
-
 OUT ?= payments.xlsx
 STATUS ?=
 FROM ?=
@@ -31,7 +29,7 @@ help:
 	@echo "  make export STATUS=captured FROM=2025-12-16 TO=2025-12-30 OUT=captured.xlsx"
 
 up:
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d $(POSTGRES_SERVICE)
 
 down:
 	$(COMPOSE) down
@@ -49,7 +47,7 @@ logs-postgres:
 	$(COMPOSE) logs -f $(POSTGRES_SERVICE)
 
 logs-exporter:
-	$(COMPOSE) logs -f $(EXPORTER_SERVICE)
+	tail -f logs/data-loader.log
 
 wait-db:
 	@echo "Waiting for Postgres..."
@@ -60,7 +58,7 @@ wait-db:
 
 export: up wait-db
 	@echo "Exporting -> ./out/$(OUT)"
-	$(COMPOSE) exec -T $(EXPORTER_SERVICE) $(EXPORT_SCRIPT) \
+	$(COMPOSE) run --rm $(EXPORTER_SERVICE) \
 		--out /app/out/$(OUT) \
 		$(if $(STATUS),--status $(STATUS),) \
 		$(if $(FROM),--from $(FROM),) \
@@ -68,7 +66,7 @@ export: up wait-db
 		$(if $(DEBUG),--debug,)
 
 test: up wait-db
-	$(COMPOSE) exec -T $(EXPORTER_SERVICE) prove -lv modules/t
+	$(COMPOSE) run --rm --entrypoint prove $(EXPORTER_SERVICE) -lv modules/t
 
 psql: up wait-db
 	$(COMPOSE) exec $(POSTGRES_SERVICE) psql -U demo -d demo

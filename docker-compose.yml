@@ -13,7 +13,6 @@ services:
 
   exporter:
     build: .
-    container_name: demo_exporter
     depends_on:
       - postgres
     environment:
@@ -27,5 +26,3 @@ services:
       - ./out:/app/out
       - ./modules:/app/modules
       - ./logs:/app/logs
-    command: ["sleep", "infinity"]
-    restart: unless-stopped

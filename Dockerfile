@@ -26,3 +26,5 @@ ENV PGHOST=postgres \
     PGDATABASE=demo \
     PGUSER=demo \
     PGPASSWORD=demo
+
+ENTRYPOINT ["/app/export_data_to_excel.pl"]

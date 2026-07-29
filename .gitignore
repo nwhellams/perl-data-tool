@@ -44,3 +44,4 @@ inc/
 
 logs/*.log
 out/*.xlsx
+graphify-out/
